@@ -3,18 +3,24 @@ from dataset import (
     analyze_dataset,
     impute_zero_values,
 )
+from students.gopienko_ad.lab1.source.dataset import StandardScaler, train_test_split
 
 
 def main():
     df = load_dataset()
-
-    print("Before preprocessing:")
-    analyze_dataset(df)
-
     df = impute_zero_values(df)
 
-    print("\nAfter preprocessing:")
     analyze_dataset(df)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        df,
+        test_size=0.2
+    )
+
+    scaler = StandardScaler()
+
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
 
 if __name__ == "__main__":
