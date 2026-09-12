@@ -84,33 +84,92 @@ def impute_zero_values(
 
     return df
 
-def train_test_split(
+def train_val_test_split(
         df: pd.DataFrame,
         target_column: str = "class",
-        test_size: float = 0.2,
+        val_size: float = 0.15,
+        test_size: float = 0.15,
         random_state: int = 42
 ):
-    X = df.drop(columns=[target_column]).to_numpy()
-    y = df[target_column].to_numpy()
+    if val_size + test_size >= 1.0:
+        raise ValueError(
+            "val_size + test_size must be less than 1."
+        )
 
-    rng = np.random.default_rng(random_state)
-    indices = np.arange(len(df))
-    rng.shuffle(indices)
-    test_count = int(len(df) * test_size)
+    X = df.drop(
+        columns=[target_column]
+    ).to_numpy()
 
-    test_indices = indices[:test_count]
-    train_indices = indices[test_count:]
-    X_train = X[train_indices]
-    X_test = X[test_indices]
-    y_train = y[train_indices]
-    y_test = y[test_indices]
+    y = df[
+        target_column
+    ].to_numpy()
+
+    rng = np.random.default_rng(
+        random_state
+    )
+
+    indices = np.arange(
+        len(df)
+    )
+
+    rng.shuffle(
+        indices
+    )
+
+    test_count = int(
+        len(df) * test_size
+    )
+
+    val_count = int(
+        len(df) * val_size
+    )
+
+    test_indices = indices[
+        :test_count
+    ]
+
+    val_indices = indices[
+        test_count:
+        test_count + val_count
+    ]
+
+    train_indices = indices[
+        test_count + val_count:
+    ]
+
+    X_train = X[
+        train_indices
+    ]
+
+    X_val = X[
+        val_indices
+    ]
+
+    X_test = X[
+        test_indices
+    ]
+
+    y_train = y[
+        train_indices
+    ]
+
+    y_val = y[
+        val_indices
+    ]
+
+    y_test = y[
+        test_indices
+    ]
 
     return (
         X_train,
+        X_val,
         X_test,
         y_train,
+        y_val,
         y_test
     )
+
 
 class StandardScaler:
     def __init__(self, eps: float = 1e-12):
