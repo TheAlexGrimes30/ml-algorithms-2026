@@ -1,5 +1,7 @@
 import numpy as np
 
+from students.gopienko_ad.lab1.source.linear_classifier import LinearClassifier
+
 
 def accuracy(
         y_true: np.ndarray,
@@ -116,3 +118,39 @@ def confusion_matrix(
         [tn, fp],
         [fn, tp]
     ])
+
+def calculate_metrics(
+    model: LinearClassifier,
+    X: np.ndarray,
+    y: np.ndarray
+):
+    prediction = model.predict(X)
+
+    scores = model.decision_function(X)
+
+    return {
+        "accuracy": accuracy(
+            y,
+            prediction
+        ),
+
+        "precision": precision(
+            y,
+            prediction
+        ),
+
+        "recall": recall(
+            y,
+            prediction
+        ),
+
+        "f1": f1_score(
+            y,
+            prediction
+        ),
+
+        "roc_auc": roc_auc(
+            y,
+            scores
+        ),
+    }
