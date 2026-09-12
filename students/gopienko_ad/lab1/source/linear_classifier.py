@@ -389,3 +389,57 @@ class LinearClassifier:
                 )
 
         return self
+
+class RidgeClassifier:
+    def __init__(self, l2: float = 1e-3):
+        self.l2 = l2
+
+        self.w = None
+        self.b = 0.0
+
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        X_aug = np.column_stack(
+            (X, np.ones(len(X)))
+        )
+
+        regularization_matrix = np.eye(X_aug.shape[1])
+
+        matrix = X_aug.T @ X_aug + len(X) * self.l2 * regularization_matrix
+
+        right_part = (
+                X_aug.T
+                @ y
+        )
+
+        try:
+
+            theta = np.linalg.solve(
+                matrix,
+                right_part
+            )
+
+        except np.linalg.LinAlgError:
+
+            theta = np.linalg.pinv(matrix) @ right_part
+            
+        self.w = theta[
+                 :-1
+                 ]
+
+        self.b = float(
+            theta[
+                -1
+            ]
+        )
+
+        return self
+
+    def decision_function(self, X: np.ndarray) -> np.ndarray:
+        return X @ self.w + self.b
+
+    def predict(self,X: np.ndarray) -> np.ndarray:
+        return np.where(
+            self.decision_function(X) >= 0,
+            1.0,
+            -1.0
+        )
