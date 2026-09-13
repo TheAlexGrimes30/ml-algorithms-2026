@@ -35,9 +35,7 @@ def load_dataset() -> pd.DataFrame:
 
     dataset_path = Path(dataset_path)
 
-    csv_path = next(
-        dataset_path.glob("*.csv")
-    )
+    csv_path = next(dataset_path.glob("*.csv"))
 
     df = pd.read_csv(
         csv_path,
@@ -61,9 +59,10 @@ def analyze_dataset(
     print(df.describe())
 
     print("\nZero values:")
-    print(
-        (df[COLUMNS_TO_IMPUTE] == 0).sum()
-    )
+    print((df[COLUMNS_TO_IMPUTE] == 0).sum())
+
+    print("\nClass distribution:")
+    print(df["class"].value_counts().sort_index())
 
 
 def impute_zero_values(
@@ -89,85 +88,62 @@ def train_val_test_split(
         target_column: str = "class",
         val_size: float = 0.15,
         test_size: float = 0.15,
+        stratify: bool = True,
         random_state: int = 42
 ):
+    if val_size < 0 or test_size < 0:
+        raise ValueError("val_size and test_size must be non-negative.")
+
     if val_size + test_size >= 1.0:
-        raise ValueError(
-            "val_size + test_size must be less than 1."
-        )
+        raise ValueError("val_size + test_size must be less than 1.")
 
-    X = df.drop(
-        columns=[target_column]
-    ).to_numpy()
+    X = df.drop(columns=[target_column]).to_numpy()
+    y = df[target_column].to_numpy()
 
-    y = df[
-        target_column
-    ].to_numpy()
+    rng = np.random.default_rng(random_state)
 
-    rng = np.random.default_rng(
-        random_state
-    )
+    if not stratify:
+        indices = np.arange(len(df))
+        rng.shuffle(indices)
 
-    indices = np.arange(
-        len(df)
-    )
+        test_count = int(round(len(df) * test_size))
+        val_count = int(round(len(df) * val_size))
 
-    rng.shuffle(
-        indices
-    )
+        test_indices = indices[:test_count]
+        val_indices = indices[test_count:test_count + val_count]
+        train_indices = indices[test_count + val_count:]
 
-    test_count = int(
-        len(df) * test_size
-    )
+    else:
+        train_parts = []
+        val_parts = []
+        test_parts = []
 
-    val_count = int(
-        len(df) * val_size
-    )
+        for df_cls in np.unique(y):
+            cls_indices = np.flatnonzero(y == df_cls)
+            rng.shuffle(cls_indices)
 
-    test_indices = indices[
-        :test_count
-    ]
+            test_count = int(round(len(cls_indices) * test_size))
+            val_count = int(round(len(cls_indices) * val_size))
 
-    val_indices = indices[
-        test_count:
-        test_count + val_count
-    ]
+            test_parts.append(cls_indices[:test_count])
+            val_parts.append(cls_indices[test_count:test_count + val_count])
+            train_parts.append(cls_indices[test_count + val_count:])
 
-    train_indices = indices[
-        test_count + val_count:
-    ]
+        train_indices = np.concatenate(train_parts)
+        val_indices = np.concatenate(val_parts)
+        test_indices = np.concatenate(test_parts)
 
-    X_train = X[
-        train_indices
-    ]
-
-    X_val = X[
-        val_indices
-    ]
-
-    X_test = X[
-        test_indices
-    ]
-
-    y_train = y[
-        train_indices
-    ]
-
-    y_val = y[
-        val_indices
-    ]
-
-    y_test = y[
-        test_indices
-    ]
+        rng.shuffle(train_indices)
+        rng.shuffle(val_indices)
+        rng.shuffle(test_indices)
 
     return (
-        X_train,
-        X_val,
-        X_test,
-        y_train,
-        y_val,
-        y_test
+        X[train_indices],
+        X[val_indices],
+        X[test_indices],
+        y[train_indices],
+        y[val_indices],
+        y[test_indices],
     )
 
 

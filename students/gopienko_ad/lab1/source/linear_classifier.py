@@ -421,7 +421,7 @@ class RidgeClassifier:
         except np.linalg.LinAlgError:
 
             theta = np.linalg.pinv(matrix) @ right_part
-            
+
         self.w = theta[
                  :-1
                  ]
