@@ -12,7 +12,7 @@ from students.gopienko_ad.lab1.source.dataset import StandardScaler, train_val_t
 from students.gopienko_ad.lab1.source.linear_classifier import LinearClassifier, RidgeClassifier
 from students.gopienko_ad.lab1.source.metrics import calculate_metrics
 from students.gopienko_ad.lab1.source.plots import plot_feature_correlations, plot_objective, plot_recurrent_quality, \
-    plot_multistart_objectives, plot_confusion_matrix, plot_margins
+    plot_multistart_objectives, plot_confusion_matrix, plot_margins, plot_full_correlation_heatmap
 
 
 def train_multistart(
@@ -363,6 +363,11 @@ def main():
     plot_feature_correlations(
         feature_names,
         correlations,
+        output_dir=plots_dir,
+    )
+
+    plot_full_correlation_heatmap(
+        df,
         output_dir=plots_dir,
     )
 

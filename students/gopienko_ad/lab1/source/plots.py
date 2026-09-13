@@ -34,6 +34,61 @@ def plot_feature_correlations(
     )
     plt.close()
 
+def plot_full_correlation_heatmap(
+        df,
+        output_dir="results/plots",
+):
+    correlation_matrix = df.corr(
+        numeric_only=True
+    )
+
+    labels = correlation_matrix.columns.to_numpy()
+    values = correlation_matrix.to_numpy()
+
+    plt.figure(figsize=(9, 7))
+
+    image = plt.imshow(
+        values,
+        aspect="auto",
+    )
+
+    plt.xticks(
+        np.arange(len(labels)),
+        labels,
+        rotation=45,
+        ha="right",
+    )
+
+    plt.yticks(
+        np.arange(len(labels)),
+        labels,
+    )
+
+    for row in range(values.shape[0]):
+        for column in range(values.shape[1]):
+            plt.text(
+                column,
+                row,
+                f"{values[row, column]:.2f}",
+                ha="center",
+                va="center",
+                fontsize=8,
+            )
+
+    plt.colorbar(image)
+    plt.title("Полная матрица корреляций")
+    plt.tight_layout()
+
+    plt.savefig(
+        _prepare_path(
+            output_dir,
+            "00_full_correlation_heatmap.png",
+        ),
+        dpi=160,
+    )
+
+    plt.close()
+
 
 def plot_margins(
     model,
