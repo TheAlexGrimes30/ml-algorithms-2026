@@ -1,6 +1,6 @@
 import numpy as np
 
-from students.gopienko_ad.lab1.source.linear_classifier import LinearClassifier
+from students.gopienko_ad.lab1.source.linear_classifier import LinearClassifier, RidgeClassifier
 
 
 def accuracy(
@@ -120,7 +120,7 @@ def confusion_matrix(
     ])
 
 def calculate_metrics(
-    model: LinearClassifier,
+    model: LinearClassifier | RidgeClassifier,
     X: np.ndarray,
     y: np.ndarray
 ):
