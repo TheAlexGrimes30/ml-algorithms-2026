@@ -3,5 +3,4 @@ venv
 data
 *.ipynb
 .idea
-*.png
 *.csv
