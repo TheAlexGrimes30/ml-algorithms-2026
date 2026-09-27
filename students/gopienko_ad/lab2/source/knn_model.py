@@ -67,10 +67,7 @@ class KNNClassifier:
 
         return np.maximum(h, self.eps)
 
-    def _class_scores_from_distances(
-        self,
-        distances: np.ndarray
-    ) -> np.ndarray:
+    def _class_scores_from_distances(self, distances: np.ndarray) -> np.ndarray:
         h = self._bandwidth(distances)
 
         normalized = distances / h[:, None]
@@ -90,10 +87,7 @@ class KNNClassifier:
 
         return scores
 
-    def predict_proba(
-        self,
-        x: np.ndarray
-    ) -> np.ndarray:
+    def predict_proba(self, x: np.ndarray) -> np.ndarray:
 
         distances = pairwise_euclidean(x, self.x_train)
         scores = self._class_scores_from_distances(distances)
@@ -215,10 +209,7 @@ def compactness_profile(
 
     return profile.astype(float)
 
-def _ccv_weights(
-    total_size: int,
-    control_size: int,
-) -> np.ndarray:
+def _ccv_weights(total_size: int, control_size: int) -> np.ndarray:
 
     L = int(total_size)
     k_control = int(control_size)
@@ -249,7 +240,211 @@ def ccv_1nn_from_profile(
         total_size=total_size,
         control_size=control_size
     )
-    
+
     length = min(len(profile), len(weights))
     return float(np.sum(profile[:length] * weights[:length]))
+
+class GreedyPrototypeSelector:
+
+    def __init__(
+        self,
+        tolerance: float = 0.0,
+        min_per_class: int = 1,
+        max_prototypes: int | None = None,
+        min_prototypes: int | None = None,
+        max_removals: int | None = None,
+    ):
+        self.tolerance = tolerance
+        self.min_per_class = min_per_class
+
+        self.max_prototypes = max_prototypes
+        self.min_prototypes = min_prototypes
+        self.max_removals = max_removals
+
+        self.prototype_indices_ = None
+        self.history_ = None
+
+    @staticmethod
+    def _nearest_two(
+        distances: np.ndarray,
+        active_mask: np.ndarray,
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ]:
+        masked = np.where(active_mask[None, :], distances, np.inf)
+
+        if np.sum(active_mask) == 1:
+            nearest = np.argmin(
+                masked,
+                axis=1,
+            )
+            nearest_dist = masked[np.arange(len(masked)), nearest]
+            second = nearest.copy()
+            second_dist = np.full(len(masked), np.inf)
+
+            return (
+                nearest,
+                nearest_dist,
+                second,
+                second_dist,
+            )
+
+        two = np.argpartition(masked, kth=1, axis=1,)[:, :2]
+        two_dist = np.take_along_axis(masked, two, axis=1)
+        sort_order = np.argsort(two_dist, axis=1)
+
+        nearest = np.take_along_axis(
+            two,
+            sort_order[:, :1],
+            axis=1,
+        ).ravel()
+
+        second = np.take_along_axis(
+            two,
+            sort_order[:, 1:2],
+            axis=1,
+        ).ravel()
+
+        nearest_dist = masked[np.arange(len(masked)), nearest]
+        second_dist = masked[np.arange(len(masked)), second]
+
+        return (
+            nearest,
+            nearest_dist,
+            second,
+            second_dist,
+        )
+
+    def fit(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+    ) -> "GreedyPrototypeSelector":
+
+        n_samples = len(x)
+        classes = np.unique(y)
+        distances = pairwise_euclidean(x, x)
+        np.fill_diagonal(distances, np.inf)
+        active = np.ones(n_samples, dtype=bool,)
+
+        target_size = max(
+            (
+                self.min_prototypes
+                if self.min_prototypes is not None
+                else 0
+            ),
+            len(classes) * self.min_per_class,
+        )
+
+        nearest, _, second, _ = (self._nearest_two(distances, active,))
+
+        prediction = y[nearest]
+        errors = (prediction != y)
+        current_risk = float(np.mean(errors))
+        initial_risk = current_risk
+
+        history = [
+            {
+                "n_prototypes": int(np.sum(active)),
+                "loo_risk": current_risk,
+            }
+        ]
+
+        removed = 0
+
+        while True:
+            n_active = int(np.sum(active))
+
+            if n_active <= target_size:
+                break
+
+            if self.min_prototypes is not None and n_active <= self.min_prototypes:
+                break
+
+            if self.max_removals is not None and removed >= self.max_removals:
+                break
+
+            best_candidate = None
+            best_risk = np.inf
+
+            class_counts = {class_label: int(np.sum(active & (y == class_label)))
+                for class_label in classes
+            }
+
+            active_indices = np.flatnonzero(active)
+
+            for candidate in active_indices:
+                candidate_class = y[candidate]
+
+                if class_counts[candidate_class] <= self.min_per_class:
+                    continue
+
+                affected = nearest == candidate
+
+                if not np.any(affected):
+                    candidate_risk = current_risk
+                else:
+                    new_errors = errors.copy()
+                    replacement_labels = y[second[affected]]
+
+                    new_errors[affected] = replacement_labels != y[affected]
+                    candidate_risk = float(np.mean(new_errors))
+
+                if candidate_risk < best_risk:
+                    best_risk = candidate_risk
+                    best_candidate = candidate
+
+            if best_candidate is None:
+                break
+
+            if best_risk > initial_risk + self.tolerance:
+                break
+
+            active[best_candidate] = False
+            removed += 1
+
+            nearest, _, second, _ = self._nearest_two(distances, active)
+            prediction = y[nearest]
+            errors = (prediction != y)
+            current_risk = float(np.mean(errors))
+
+            history.append(
+                {
+                    "n_prototypes": int(np.sum(active)),
+                    "loo_risk": current_risk,
+                }
+            )
+
+        self.prototype_indices_ = np.flatnonzero(active)
+        self.history_ = history
+
+        return self
+
+    def transform(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+
+        X = np.asarray(X)
+        y = np.asarray(y)
+
+        return (
+            X[self.prototype_indices_],
+            y[self.prototype_indices_]
+        )
+
+    def fit_transform(self,
+        x: np.ndarray,
+        y: np.ndarray,
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+    ]:
+        self.fit(x, y)
+        return self.transform(x, y,)
+
 
