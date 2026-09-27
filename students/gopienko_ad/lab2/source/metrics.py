@@ -82,3 +82,48 @@ def roc_auc(
     positive_rank_sum = np.sum(ranks[positive_mask])
     auc = (positive_rank_sum - n_positive * (n_positive + 1)/ 2.0) / (n_positive * n_negative)
     return float(auc)
+
+def confusion_matrix(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    positive_label=1,
+) -> np.ndarray:
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+
+    positive_true = y_true == positive_label
+    positive_pred = (y_pred == positive_label)
+
+    tp = np.sum(positive_true & positive_pred)
+    fp = np.sum(~positive_true & positive_pred)
+    fn = np.sum(positive_true & ~positive_pred)
+    tn = np.sum(~positive_true & ~positive_pred)
+
+    return np.array(
+        [
+            [tn, fp],
+            [fn, tp],
+        ],
+        dtype=int,
+    )
+
+
+def calculate_metrics(
+    model,
+    X: np.ndarray,
+    y: np.ndarray,
+    positive_label=1,
+) -> dict[str, float]:
+    prediction = model.predict(X)
+    probabilities = model.predict_proba(X)
+    classes = np.asarray(model.classes_)
+    positive_index = int(np.flatnonzero(classes == positive_label)[0])
+    scores = probabilities[:, positive_index,]
+
+    return {
+        "accuracy": accuracy(y, prediction),
+        "precision": precision(y, prediction),
+        "recall": recall(y, prediction),
+        "f1": f1_score(y, prediction,),
+        "roc_auc": roc_auc(y, scores)
+    }
