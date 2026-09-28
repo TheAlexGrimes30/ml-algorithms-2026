@@ -47,10 +47,7 @@ def load_dataset(output_dir: str | Path = "data",) -> pd.DataFrame:
         df = df.iloc[1:].reset_index(drop=True)
 
     for column in COLUMNS:
-        df[column] = pd.to_numeric(
-            df[column],
-            errors="raise",
-        )
+        df[column] = pd.to_numeric(df[column], errors="raise")
 
     df["class"] = df["class"].astype(int)
 
@@ -161,7 +158,7 @@ class StandardScaler:
         self.means = np.mean(X, axis=0)
         self.stds = np.std(X, axis=0)
 
-        self.std = np.where(
+        self.stds = np.where(
             self.stds < self.eps,
             1.0,
             self.stds
@@ -170,12 +167,9 @@ class StandardScaler:
     def transform(self, X: np.ndarray) -> np.ndarray:
 
         if self.means is None or self.stds is None:
-            raise ValueError(
-                "StandardScaler must be fitted before transform."
-            )
+            raise ValueError("StandardScaler must be fitted before transform.")
 
         X = X.astype(float)
-
         X_scaled = (X - self.means) / self.stds
 
         return X_scaled

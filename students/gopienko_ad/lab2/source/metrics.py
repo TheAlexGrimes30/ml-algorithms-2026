@@ -85,14 +85,13 @@ def roc_auc(
 
 def confusion_matrix(
     y_true: np.ndarray,
-    y_pred: np.ndarray,
-    positive_label=1,
+    y_pred: np.ndarray
 ) -> np.ndarray:
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
 
-    positive_true = y_true == positive_label
-    positive_pred = (y_pred == positive_label)
+    positive_true = y_true == 1
+    positive_pred = (y_pred == 1)
 
     tp = np.sum(positive_true & positive_pred)
     fp = np.sum(~positive_true & positive_pred)
@@ -111,19 +110,18 @@ def confusion_matrix(
 def calculate_metrics(
     model,
     X: np.ndarray,
-    y: np.ndarray,
-    positive_label=1,
+    y: np.ndarray
 ) -> dict[str, float]:
     prediction = model.predict(X)
     probabilities = model.predict_proba(X)
     classes = np.asarray(model.classes_)
-    positive_index = int(np.flatnonzero(classes == positive_label)[0])
-    scores = probabilities[:, positive_index,]
+    positive_index = int(np.flatnonzero(classes == 1)[0])
+    scores = probabilities[:, positive_index]
 
     return {
         "accuracy": accuracy(y, prediction),
         "precision": precision(y, prediction),
         "recall": recall(y, prediction),
-        "f1": f1_score(y, prediction,),
+        "f1": f1_score(y, prediction),
         "roc_auc": roc_auc(y, scores)
     }

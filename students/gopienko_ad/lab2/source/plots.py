@@ -10,9 +10,14 @@ def _ensure_parent(path: str | Path) -> Path:
     return path
 
 
-def plot_loo_risk(k_values: np.ndarray, risks: np.ndarray, best_k: int, path: str | Path,) -> None:
-    path = _ensure_parent(path)
+def plot_loo_risk(
+        k_values: np.ndarray,
+        risks: np.ndarray,
+        best_k: int,
+        path: str | Path
+) -> None:
 
+    path = _ensure_parent(path)
     plt.figure(figsize=(8, 5))
 
     plt.plot(
@@ -38,7 +43,7 @@ def plot_loo_risk(k_values: np.ndarray, risks: np.ndarray, best_k: int, path: st
 
 def plot_metric_comparison(
     metrics_by_model: dict[str, dict[str, float]],
-    path: str | Path,
+    path: str | Path
 ) -> None:
     path = _ensure_parent(path)
 
@@ -71,7 +76,7 @@ def plot_metric_comparison(
             label=model_name,
         )
 
-    plt.xticks(x, metric_names,)
+    plt.xticks(x, metric_names)
     plt.ylim(0.0, 1.05,)
     plt.ylabel("score")
     plt.title("Model quality comparison")
@@ -82,12 +87,10 @@ def plot_metric_comparison(
     plt.close()
 
 
-def pca_2d(
-    x: np.ndarray,
-) -> np.ndarray:
+def pca_2d(x: np.ndarray) -> np.ndarray:
 
     X = np.asarray(x, dtype=float)
-    centered = x - np.mean(X, axis=0, keepdims=True)
+    centered = X - np.mean(X, axis=0, keepdims=True)
     _, _, vt = np.linalg.svd(centered, full_matrices=False)
     components = vt[:2]
 
@@ -98,7 +101,7 @@ def plot_prototypes_2d(
     X: np.ndarray,
     y: np.ndarray,
     prototype_indices: np.ndarray,
-    path: str | Path,
+    path: str | Path
 ) -> None:
     path = _ensure_parent(path)
 
@@ -119,7 +122,7 @@ def plot_prototypes_2d(
             label=(
                 f"class {class_label}: "
                 "non-prototypes"
-            ),
+            )
         )
 
         plt.scatter(
@@ -131,7 +134,7 @@ def plot_prototypes_2d(
             label=(
                 f"class {class_label}: "
                 "prototypes"
-            ),
+            )
         )
 
     plt.xlabel("PCA component 1")
@@ -144,34 +147,43 @@ def plot_prototypes_2d(
     plt.close()
 
 
-def plot_prototype_history(history: list[dict], path: str | Path,) -> None:
+def plot_confusion_matrices(
+    matrices: dict[str, np.ndarray],
+    path: str | Path
+) -> None:
     path = _ensure_parent(path)
 
-    prototype_counts = np.array(
-        [
-            item["n_prototypes"]
-            for item in history
-        ]
+    model_names = list(matrices.keys())
+    n_models = len(model_names)
+
+    figure, axes = plt.subplots(
+        1,
+        n_models,
+        figsize=(5 * n_models, 4),
+        squeeze=False,
     )
 
-    risks = np.array(
-        [
-            item["loo_risk"]
-            for item in history
-        ]
-    )
+    for axis, model_name in zip(axes[0], model_names):
+        matrix = np.asarray(matrices[model_name], dtype=int)
+        axis.imshow(matrix)
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(
-        prototype_counts,
-        risks,
-        marker="o",
-    )
-    plt.xlabel("number of prototypes")
-    plt.ylabel("1NN LOO risk")
-    plt.title("Greedy prototype selection")
-    plt.grid(alpha=0.3)
-    plt.gca().invert_xaxis()
-    plt.tight_layout()
-    plt.savefig(path, dpi=160)
-    plt.close()
+        for row in range(matrix.shape[0]):
+            for column in range(matrix.shape[1]):
+                axis.text(
+                    column,
+                    row,
+                    str(matrix[row, column]),
+                    ha="center",
+                    va="center"
+                )
+
+        axis.set_xticks(np.arange(matrix.shape[1]))
+        axis.set_yticks(np.arange(matrix.shape[0]))
+        axis.set_xlabel("Predicted class")
+        axis.set_ylabel("True class")
+        axis.set_title(model_name)
+
+    figure.suptitle("Confusion matrices")
+    figure.tight_layout()
+    figure.savefig(path, dpi=160)
+    plt.close(figure)
