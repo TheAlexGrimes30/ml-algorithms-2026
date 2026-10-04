@@ -161,3 +161,37 @@ class SVMClassifier:
         scores = K @ (self.support_alpha_ * self.support_y_) + self.b_
 
         return np.asarray(scores, dtype=float)
+
+    def predict(self, x: np.ndarray,) -> np.ndarray:
+        scores = self.decision_function(x)
+
+        signed_prediction = np.where(
+            scores >= 0.0,
+            1.0,
+            -1.0,
+        )
+
+        return np.where(
+            signed_prediction < 0,
+            self.classes_[0],
+            self.classes_[1],
+        )
+
+    def predict_proba(self, x: np.ndarray) -> np.ndarray:
+
+        scores = self.decision_function(x)
+        clipped = np.clip(scores, -50.0,50.0)
+        positive = 1.0 / (1.0 + np.exp(-clipped))
+        negative = 1.0 - positive
+
+        return np.column_stack([negative, positive])
+
+    @property
+    def n_support_(self) -> np.ndarray:
+
+        counts = [
+            np.sum(self.support_y_ < 0),
+            np.sum(self.support_y_ > 0),
+        ]
+
+        return np.asarray(counts, dtype=int)
