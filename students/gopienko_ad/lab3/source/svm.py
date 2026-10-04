@@ -142,3 +142,22 @@ class SVMClassifier:
             self.w_ = None
 
         return self
+
+    def decision_function(
+        self,
+        x: np.ndarray,
+    ) -> np.ndarray:
+
+        x = np.asarray(x, dtype=float)
+
+        if x.ndim == 1:
+            x = x.reshape(1, -1)
+
+        if x.ndim != 2:
+            raise ValueError("X must be a 2D array.")
+
+        K = self._kernel_matrix(x, self.support_vectors_)
+
+        scores = K @ (self.support_alpha_ * self.support_y_) + self.b_
+
+        return np.asarray(scores, dtype=float)
