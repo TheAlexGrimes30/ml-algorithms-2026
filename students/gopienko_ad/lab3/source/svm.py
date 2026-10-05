@@ -40,14 +40,24 @@ class SVMClassifier:
             x: np.ndarray,
             z: np.ndarray
     ) -> np.ndarray:
+
         if self.kernel == "linear":
             return x @ z.T
 
         elif self.kernel == "poly":
             return (self.gamma * (x @ z.T) + self.coef0) ** self.degree
 
-        x_squared = np.sum(x * x, axis=1, keepdims=True)
-        z_squared = np.sum(z * z,axis=1, keepdims=True)
+        x_squared = np.sum(
+            x * x,
+            axis=1,
+            keepdims=True
+        )
+
+        z_squared = np.sum(
+            z * z,
+            axis=1,
+            keepdims=True
+        ).T
 
         squared_distances = x_squared + z_squared - 2.0 * (x @ z.T)
         squared_distances = np.maximum(squared_distances, 0.0)

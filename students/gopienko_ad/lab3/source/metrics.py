@@ -111,16 +111,14 @@ def calculate_metrics(
     X: np.ndarray,
     y: np.ndarray
 ) -> dict[str, float]:
+
     prediction = model.predict(X)
-    probabilities = model.predict_proba(X)
-    classes = np.asarray(model.classes_)
-    positive_index = int(np.flatnonzero(classes == 1)[0])
-    scores = probabilities[:, positive_index]
+    scores = model.decision_function(X)
 
     return {
         "accuracy": accuracy(y, prediction),
         "precision": precision(y, prediction),
         "recall": recall(y, prediction),
         "f1": f1_score(y, prediction),
-        "roc_auc": roc_auc(y, scores)
+        "roc_auc": roc_auc(y, scores),
     }

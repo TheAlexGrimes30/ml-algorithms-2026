@@ -26,14 +26,14 @@ def plot_decision_boundary(
 
     scores = model.decision_function(grid)
     scores = scores.reshape(xx.shape)
+    regions = (scores >= 0).astype(int)
 
     plt.figure(figsize=(8, 6))
-
     plt.contourf(
         xx,
         yy,
-        scores,
-        levels=[-np.inf, 0, np.inf],
+        regions,
+        levels=[-0.5, 0.5, 1.5],
         alpha=0.2,
     )
 
