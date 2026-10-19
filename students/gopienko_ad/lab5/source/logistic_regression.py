@@ -116,3 +116,20 @@ class LogisticRegressionNewton(LogisticRegressionBase):
         H[np.diag_indices_from(H)] += self._penalty(beta)
         gradient = self._gradient(F, y, beta)
         return -self._solve(H, gradient)
+
+class LogisticRegressionIRLS(LogisticRegressionBase):
+
+    def _direction(self, F: np.ndarray, y: np.ndarray, beta: np.ndarray) -> np.ndarray:
+        eta = F @ beta
+        p = expit(eta)
+        weights = np.maximum(p * (1.0 - p), 1e-12)
+        z = eta + (y - p) / weights  # working response
+        sqrt_w = np.sqrt(weights)
+        FW = F * sqrt_w[:, None]
+        zw = z * sqrt_w
+        A = (FW.T @ FW) / len(y)
+        A[np.diag_indices_from(A)] += self._penalty(beta)
+        rhs = FW.T @ zw / len(y)
+        beta_new = self._solve(A, rhs)
+        return beta_new - beta
+    
