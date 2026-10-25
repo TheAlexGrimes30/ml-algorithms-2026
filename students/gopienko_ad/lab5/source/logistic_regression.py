@@ -34,8 +34,7 @@ class LogisticRegressionBase:
 
     def _loss(self, F: np.ndarray, y: np.ndarray, beta: np.ndarray) -> float:
         eta = F @ beta
-        return float(np.mean(np.logaddexp(0.0, eta) - y * eta)
-                     + 0.5 * self.alpha * np.dot(beta[1:], beta[1:]))
+        return float(np.mean(np.logaddexp(0.0, eta) - y * eta) + 0.5 * self.alpha * np.dot(beta[1:], beta[1:]))
 
     def _gradient(self, F: np.ndarray, y: np.ndarray, beta: np.ndarray) -> np.ndarray:
         return F.T @ (expit(F @ beta) - y) / len(y) + self._penalty(beta) * beta

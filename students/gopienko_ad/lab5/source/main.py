@@ -49,6 +49,7 @@ def compare_models(models: dict, X_train: np.ndarray, X_test: np.ndarray) -> dic
         "design_rank": int(np.linalg.matrix_rank(np.column_stack([np.ones(len(X_train)), X_train]))),
         "design_columns": int(X_train.shape[1] + 1),
     }
+
     for left_name, right_name in (("newton", "irls"), ("newton", "sklearn"), ("irls", "sklearn")):
         left, right = models[left_name], models[right_name]
         prefix = f"{left_name}_vs_{right_name}"
@@ -74,6 +75,7 @@ def main() -> None:
         stratify=True,
         random_state=RANDOM_STATE
     )
+
     print(f"\nРазмеры выборок: train={X_train.shape}, val={X_val.shape}, test={X_test.shape}")
 
     medians = calculate_impute_medians(X_train)
@@ -92,6 +94,7 @@ def main() -> None:
         if ALPHA == 0
         else {"C": 1.0 / (ALPHA * len(y_train))}
     )
+
     models = {
         "newton": LogisticRegressionNewton(alpha=ALPHA, tol=TOL, max_iter=MAX_ITER).fit(X_train, y_train),
         "irls": LogisticRegressionIRLS(alpha=ALPHA, tol=TOL, max_iter=MAX_ITER).fit(X_train, y_train),
@@ -128,6 +131,7 @@ def main() -> None:
     checks = compare_models(models, X_train=X_train, X_test=X_test)
     pd.DataFrame([checks]).to_csv(STATISTICS_DIR / "model_comparison.csv", index=False)
     print("\nСравнение моделей:")
+
     for name, value in checks.items():
         print(f"  {name}: {value:.3e}" if isinstance(value, float) else f"  {name}: {value}")
     if checks["design_rank"] < checks["design_columns"]:
@@ -168,9 +172,6 @@ def main() -> None:
     plot_coefficients(models, FEATURES, PLOTS_DIR / "coefficients.png")
     plot_probability_hist(models, X_test, y_test, PLOTS_DIR / "probabilities.png")
     plot_pca_2d_boundary(X_train, y_train, PLOTS_DIR / "pca_2d_boundary.png")
-
-    print(f"\nCSV-таблицы: {STATISTICS_DIR.resolve()}")
-    print(f"Графики PNG: {PLOTS_DIR.resolve()}")
 
 
 if __name__ == "__main__":
