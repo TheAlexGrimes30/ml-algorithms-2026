@@ -11,3 +11,7 @@ __pycache__/
 
 *.csv
 .DS_Store
+env/
+
+*.py[cod]
+.pytest_cache/
