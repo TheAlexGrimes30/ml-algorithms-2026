@@ -156,12 +156,18 @@ def l2_gradient(gradient, w, tau):
     return gradient + regularization
 
 # Реализовать скорейший градиентный спуск
-def steepest_gradient_step(x_i):
+def steepest_gradient_step(x_i, gradient, tau):
     x_i = np.asarray(x_i, dtype=float)
-    x_2 = np.sum(x_i ** 2)
-    if x_2 == 0:
-        raise ValueError("Norm is zero")
-    return 1 / (2 * x_2) # исправила формулу
+    g = np.asarray(gradient, dtype=float)
+    g_reg = g.copy()
+    g_reg[-1] = 0.0
+    numerator = g @ g
+    denominator = 2 * (x_i @ g) ** 2 + tau * (g_reg @ g_reg)
+    if denominator == 0:
+        return 0.0
+
+    return numerator / denominator
+
 
 # Реализовать предъявление объектов по модулю отступа (п.8):
 # чем меньше |M_i|, тем больше вероятность выбрать объект
@@ -276,8 +282,8 @@ def SGD_steepest(X, y, w, lambda_, q_sz, eps, max_iter, tau=0, random_state=42, 
  
         gradient = l2_gradient(gradient_loss(x_i, y_i,w), w, tau) 
  
-        # h* = 1 / (2 ||x_i||^2) 
-        h_i = steepest_gradient_step(x_i)
+        # шаг вдоль антиградиента с учётом L2, без штрафа на bias
+        h_i = steepest_gradient_step(x_i, gradient, tau)
  
         w = w - h_i * gradient
  
@@ -545,27 +551,16 @@ print(own_metrics)
 
 # Сравнить лучшую реализацию с эталонной
  
-reference_model = RidgeClassifier(alpha=0.0,fit_intercept=False)
- 
-reference_model.fit(X_train,y_train)
- 
-y_pred_reference = reference_model.predict(X_test)
- 
-reference_accuracy = accuracy_score( y_test, y_pred_reference)
- 
-reference_precision = precision_score( y_test, y_pred_reference, pos_label=1)
- 
-reference_recall = recall_score( y_test, y_pred_reference, pos_label=1)
- 
-reference_f1 = f1_score( y_test, y_pred_reference,pos_label=1)
-
-# RidgeClassifier минимизирует СУММУ квадратов + alpha*||w||^2,
-alpha_equiv = tau * len(X_train) / 2
-reference_reg = RidgeClassifier(alpha=alpha_equiv, fit_intercept=False).fit(X_train, y_train)
-y_pred_reference_reg = reference_reg.predict(X_test)
-print(f"\nЭталон с alpha = tau*l/2 = {alpha_equiv:.2f}: "
-      f"Accuracy = {accuracy_score(y_test, y_pred_reference_reg):.4f}, "
-      f"F1 = {f1_score(y_test, y_pred_reference_reg, pos_label=1):.4f}")
+alpha_equiv = tau * len(X_train) / 2 
+reference_model = RidgeClassifier(alpha=alpha_equiv, fit_intercept=True)
+reference_model.fit(X_train.drop(columns="bias"), y_train)
+y_pred_reference = reference_model.predict(X_test.drop(columns="bias"))
+reference_accuracy = accuracy_score(y_test, y_pred_reference) 
+reference_precision = precision_score(y_test, y_pred_reference, pos_label=1) 
+reference_recall = recall_score(y_test, y_pred_reference, pos_label=1) 
+reference_f1 = f1_score(y_test, y_pred_reference, pos_label=1) 
+# у нас a(x) = sign(<w,x> - w0), у sklearn sign(<w,x> + intercept), поэтому w0 = -intercept 
+print(f"\nЭталон: alpha = {alpha_equiv:.2f}, w0 = {-reference_model.intercept_[0]:.6f}")
 
 
 # Метрики качества модели
