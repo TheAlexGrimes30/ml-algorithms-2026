@@ -9,3 +9,11 @@ __pycache__/
 
 .idea
 *.csv
+
+env/
+
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+data
